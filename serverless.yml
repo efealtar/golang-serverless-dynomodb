@@ -1,0 +1,62 @@
+service: todo-app
+
+provider:
+  name: aws
+  runtime: go1.x
+  region: us-east-1
+  stage: dev
+  environment:
+    DYNAMODB_TABLE: ${self:service}-${self:provider.stage}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+
+functions:
+  create:
+    handler: main
+    events:
+      - http:
+          path: todo
+          method: post
+  read:
+    handler: main
+    events:
+      - http:
+          path: todo/{id}
+          method: get
+  update:
+    handler: main
+    events:
+      - http:
+          path: todo/{id}
+          method: put
+  delete:
+    handler: main
+    events:
+      - http:
+          path: todo/{id}
+          method: delete
+
+resources:
+  Resources:
+    TodosDynamoDbTable:
+      Type: "AWS::DynamoDB::Table"
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
